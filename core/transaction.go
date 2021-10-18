@@ -6,7 +6,7 @@ import (
 
 type TransactionId HashType
 
-type TransactionInput struct {
+type OutPoint struct {
 	Id TransactionId
 	N  uint
 }
@@ -18,11 +18,22 @@ type TXO struct {
 
 // No Scripts and no contracts what so ever we are only implementing transfer between addresses
 type Transaction struct {
-	TxIn   []TransactionInput
+	TxIn   []OutPoint
 	Output []TXO
 }
 
-func (txin TransactionInput) ComputeHash() HashType {
+func CoinBaseOutpoint() OutPoint {
+	coinBaseTxid := new(HashType)
+	for i := 0; i < HashSize; i++ {
+		coinBaseTxid[i] = 0
+	}
+	return OutPoint{
+		N:  0,
+		Id: TransactionId(ZeroHash()),
+	}
+}
+
+func (txin OutPoint) ComputeHash() HashType {
 	b := make([]byte, 4)
 	binary.LittleEndian.PutUint32(b, uint32(txin.N))
 	bv := append([]byte(txin.Id[:]), []byte(b)...)

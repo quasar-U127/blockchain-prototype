@@ -9,3 +9,11 @@ type HashType [HashSize]byte
 func ComputeHash(b []byte) HashType {
 	return sha256.Sum256(b)
 }
+
+func ZeroHash() HashType {
+	hash := new(HashType)
+	for i := 0; i < HashSize; i++ {
+		hash[i] = 0
+	}
+	return *hash
+}
