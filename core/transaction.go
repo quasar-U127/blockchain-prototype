@@ -2,6 +2,7 @@ package core
 
 import (
 	"encoding/binary"
+	"fmt"
 )
 
 type TransactionId HashType
@@ -20,17 +21,6 @@ type TXO struct {
 type Transaction struct {
 	TxIn   []OutPoint
 	Output []TXO
-}
-
-func CoinBaseOutpoint() OutPoint {
-	coinBaseTxid := new(HashType)
-	for i := 0; i < HashSize; i++ {
-		coinBaseTxid[i] = 0
-	}
-	return OutPoint{
-		N:  0,
-		Id: TransactionId(ZeroHash()),
-	}
 }
 
 func (txin OutPoint) ComputeHash() HashType {
@@ -60,6 +50,20 @@ func (t Transaction) ComputeHash() HashType {
 		byteValues = append(byteValues, bv[:]...)
 	}
 	return ComputeHash(byteValues)
+}
+
+func (t *Transaction) Print() {
+	hash := t.ComputeHash()
+	fmt.Printf("\nName : %x", hash[:2])
+	fmt.Printf("\nInputs : ")
+	for _, input := range t.TxIn {
+		fmt.Printf("( %x, %d),", input.Id[:2], input.N)
+	}
+	fmt.Printf("\nOutputs : ")
+	for _, output := range t.Output {
+		fmt.Printf("( %x, %d),", output.Reciever.X, output.Value)
+	}
+	fmt.Print("\n")
 }
 
 func ComputeTransactionListHash(txns []Transaction) HashType {

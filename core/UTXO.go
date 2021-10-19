@@ -1,7 +1,16 @@
 package core
 
+type TXOSet struct {
+	Set map[OutPoint]TXO
+}
 type UTXOFrontier struct {
-	Frontier map[OutPoint]Cookies
+	Frontier TXOSet
+}
+
+func CreateUTXOFrontier() UTXOFrontier {
+	return UTXOFrontier{
+		Frontier: TXOSet{Set: map[OutPoint]TXO{}},
+	}
 }
 
 func (utxof *UTXOFrontier) VerifyTransaction(txn *Transaction) bool {
@@ -11,11 +20,11 @@ func (utxof *UTXOFrontier) VerifyTransaction(txn *Transaction) bool {
 	}
 	var input Cookies = 0
 	for _, txin := range txn.TxIn {
-		v, ok := utxof.Frontier[txin]
+		v, ok := utxof.Frontier.Set[txin]
 		if !ok {
 			return false
 		}
-		input += v
+		input += v.Value
 	}
 	return input >= output
 }
@@ -27,8 +36,8 @@ func (utxof *UTXOFrontier) GetTransactionFee(txn *Transaction) Cookies {
 	}
 	var input Cookies = 0
 	for _, txin := range txn.TxIn {
-		v := utxof.Frontier[txin]
-		input += v
+		v := utxof.Frontier.Set[txin]
+		input += v.Value
 	}
 	return input - output
 }
@@ -47,4 +56,19 @@ func (utxof *UTXOFrontier) GetFees(txns []Transaction) Cookies {
 		fees += utxof.GetTransactionFee(&txn)
 	}
 	return fees
+}
+
+func (utxof *UTXOFrontier) Update(txns []Transaction) {
+	for _, txn := range txns {
+		for _, outpoint := range txn.TxIn {
+			if outpoint.Id == TransactionId(ZeroHash()) {
+				continue
+			}
+			delete(utxof.Frontier.Set, outpoint)
+		}
+		hash := txn.ComputeHash()
+		for i, txo := range txn.Output {
+			utxof.Frontier.Set[OutPoint{Id: TransactionId(hash), N: uint(i)}] = txo
+		}
+	}
 }

@@ -52,13 +52,17 @@ func (b Block) ComputeHash() HashType {
 	return b.Header.ComputeHash()
 }
 
+func ValidDifficulty(hash HashType) bool {
+	return hash[0] == 0 && hash[1] < 16
+}
+
 func MineBlock(txns []Transaction, prevBlockHash HashType, height uint) *Block {
-	tries := uint(10000)
+	tries := uint(100000)
 	block := CreateBlock(txns, prevBlockHash, height, 0)
 	for i := uint(0); i < tries; i++ {
 		block.Header.Nonce = i
 		hash := block.ComputeHash()
-		if hash[0] == 0 {
+		if ValidDifficulty(hash) {
 			return &block
 		}
 	}
