@@ -7,6 +7,12 @@ type MemPool struct {
 	// OutPointToTxn map[transaction.OutPoint]map[transaction.TransactionId]bool
 }
 
+func CreateMemPool() MemPool {
+	return MemPool{
+		Txns: map[transaction.TransactionId]transaction.Transaction{},
+	}
+}
+
 // func (pool *MemPool) InsertTransaction(txn *transaction.Transaction, utxo *UTXOFrontier) {
 func (pool *MemPool) InsertTransaction(txn *transaction.Transaction) {
 	pool.Txns[transaction.TransactionId(txn.Hash())] = *txn

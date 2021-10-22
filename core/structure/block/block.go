@@ -53,6 +53,10 @@ func Create(txns []transaction.Transaction, prevBlockHash utils.HashType, height
 	return Block{Header: header, Txns: txns}
 }
 
+func CreateGenesis() Block {
+	return Create([]transaction.Transaction{}, utils.ZeroHash(), 1, 0)
+}
+
 func CreateHeader(txnHash utils.HashType, prevBlockHash utils.HashType, height uint, nonce uint) BlockHeader {
 	return BlockHeader{
 		PrevBlock: prevBlockHash,

@@ -2,12 +2,14 @@ package mining
 
 import (
 	"blockchain-prototype/core"
+	"blockchain-prototype/core/blockchain"
 	"blockchain-prototype/core/mempool"
 	"blockchain-prototype/core/structure/block"
 	"blockchain-prototype/core/structure/transaction"
 	"blockchain-prototype/core/teller"
 	"blockchain-prototype/core/utils"
 	"blockchain-prototype/core/verifier"
+	"blockchain-prototype/core/wallet"
 	"sort"
 )
 
@@ -52,15 +54,38 @@ func MineTransactions(pool *mempool.MemPool, tel *teller.Teller, n int) []transa
 	}
 	return txlist
 }
-func MineBlock(txns []transaction.Transaction, prevBlockHash utils.HashType, height uint) *block.Block {
+func TuneBlock(blk *block.Block, ver *verifier.Verifier) bool {
 	tries := uint(100000)
-	block := block.Create(txns, prevBlockHash, height, 0)
 	for i := uint(0); i < tries; i++ {
-		block.Header.Nonce = i
-		hash := block.Hash()
+		blk.Header.Nonce = i
+		hash := blk.Hash()
 		if verifier.VerifyDifficulty(hash) {
-			return &block
+			return true
 		}
 	}
-	return nil
+	return false
+}
+
+func MineBlock(chain *blockchain.BlockChain, add *wallet.Address, ver *verifier.Verifier, pool *mempool.MemPool) *block.Block {
+	tel := chain.GetTeller(chain.End())
+	txns := []transaction.Transaction{}
+	minedTxns := MineTransactions(pool, tel, block.BlockLimit-1)
+	fees := tel.GetTransactionListFee(minedTxns)
+	coinBaseTxn := transaction.Transaction{
+		Inputs: []transaction.OutPoint{{Id: transaction.TransactionId(utils.ZeroHash()), N: chain.Height() + 1}},
+		Outputs: []transaction.Output{
+			{Reciever: *add, Value: 50 + fees},
+		},
+	}
+	txns = append(txns, coinBaseTxn)
+	txns = append(txns, minedTxns...)
+	prevHash := chain.End()
+	newBlock := block.Create(txns, utils.HashType(prevHash), chain.Height()+1, 0)
+	tuned := TuneBlock(&newBlock, ver)
+	// block := MineBlock(txns, prevHash, state.Chain.N+1)
+	if tuned {
+		return &newBlock
+	} else {
+		return nil
+	}
 }

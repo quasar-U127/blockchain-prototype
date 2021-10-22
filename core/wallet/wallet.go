@@ -25,6 +25,10 @@ func (w *Wallet) Get(addName string) Address {
 	return Address{x: pbKey.X, y: pbKey.Y}
 }
 
+func (w *Wallet) GetName(add Address) string {
+	return w.keyToName[add]
+}
+
 func (w *Wallet) GetAddressNames() []string {
 	names := []string{}
 	for name := range w.keys {

@@ -2,8 +2,8 @@ package main
 
 import (
 	"blockchain-prototype/core"
+	"blockchain-prototype/core/structure/transaction"
 	"blockchain-prototype/server"
-	"crypto/ecdsa"
 	"fmt"
 )
 
@@ -19,23 +19,6 @@ func Menu(options []string) string {
 func main() {
 	serv := server.CreateServer("127.0.0.1:1234")
 	ser := &serv
-	// for i := 0; i < 10; i++ {
-	// 	block := server.RPCBlock{MinedBlock: nil}
-	// 	ser.MineBlock((*core.Address)(&pvKey.PublicKey), &block)
-	// 	if block.MinedBlock == nil {
-	// 		continue
-	// 	}
-	// 	for _, txn := range block.MinedBlock.Txns {
-	// 		txn.Print()
-	// 	}
-	// 	fmt.Println()
-	// 	fmt.Println()
-	// 	res := false
-	// 	ser.SubmitTransaction(&core.Transaction{
-	// 		TxIn:   []core.OutPoint{{Id: core.TransactionId(block.MinedBlock.Txns[0].ComputeHash()), N: 0}},
-	// 		Output: []core.TXO{{Reciever: core.Address(pvKey.PublicKey), Value: 45}},
-	// 	}, &res)
-	// }
 	for {
 		fmt.Println("---Main Menu---")
 		options := []string{"block", "transaction", "address", "exit"}
@@ -74,11 +57,11 @@ func BlockMenu(ser *server.Server) {
 		switch option {
 		case "mine":
 			{
-				addList := server.RPCAddressList{Addresses: map[string]*ecdsa.PublicKey{}}
+				addList := server.RPCAddressList{Addresses: map[string]string{}}
 				ser.GetAddressList(server.Nothing{}, &addList)
 
 				fmt.Printf("Enter Address from ( ")
-				for name, _ := range addList.Addresses {
+				for name := range addList.Addresses {
 					fmt.Printf("%s, ", name)
 				}
 				fmt.Printf("):")
@@ -88,7 +71,7 @@ func BlockMenu(ser *server.Server) {
 					continue
 				}
 				block := server.RPCBlock{MinedBlock: nil}
-				ser.MineBlock((*core.Address)(addList.Addresses[add]), &block)
+				ser.MineBlock(add, &block)
 				if block.MinedBlock == nil {
 					continue
 				}
@@ -112,19 +95,19 @@ func AddressMenu(ser *server.Server) {
 		switch option {
 		case "list":
 			{
-				addList := server.RPCAddressList{Addresses: map[string]*ecdsa.PublicKey{}}
+				addList := server.RPCAddressList{Addresses: map[string]string{}}
 				ser.GetAddressList(server.Nothing{}, &addList)
 				for name, pbkey := range addList.Addresses {
-					fmt.Printf("\t\t %s: %x\n", name, pbkey.X.Bytes())
+					fmt.Printf("\t\t %s: %x\n", name, pbkey)
 				}
 			}
 		case "new":
 			{
-				addList := server.RPCAddressList{Addresses: map[string]*ecdsa.PublicKey{}}
+				addList := server.RPCAddressList{Addresses: map[string]string{}}
 				ser.GetAddressList(server.Nothing{}, &addList)
 
 				fmt.Printf("Enter new address name except ( ")
-				for name, _ := range addList.Addresses {
+				for name := range addList.Addresses {
 					fmt.Printf("%s, ", name)
 				}
 				fmt.Printf("):")
@@ -143,7 +126,7 @@ func AddressMenu(ser *server.Server) {
 
 func TransactionMenu(ser *server.Server) {
 	for {
-		fmt.Println("---Address Menu---")
+		fmt.Println("---Transaction Menu---")
 		options := []string{"new", "return"}
 		option := Menu(options)
 		switch option {
@@ -160,13 +143,11 @@ func TransactionMenu(ser *server.Server) {
 }
 
 func CreateTransaction(ser *server.Server) {
-	set := core.TXOSet{Set: map[core.OutPoint]core.TXO{}}
+	set := server.RPCTXOSet{Set: map[transaction.OutPoint]transaction.Output{}}
 	ser.GetUTXO(nil, &set)
-	txoList := make([]core.OutPoint, len(set.Set))
-	i := 0
-	for out := range set.Set {
-		txoList[i] = out
-		i++
+	txoList := make([]transaction.OutPoint, 0, len(set.Set))
+	for op := range set.Set {
+		txoList = append(txoList, op)
 	}
 
 	fmt.Println()
@@ -180,7 +161,7 @@ func CreateTransaction(ser *server.Server) {
 	fmt.Scan(&inSize)
 	totalValue := 0
 	fmt.Print("Enter Inputs\n")
-	inputs := []core.OutPoint{}
+	inputs := []transaction.OutPoint{}
 
 	for i := 0; i < inSize; i++ {
 		input := 0
@@ -190,7 +171,7 @@ func CreateTransaction(ser *server.Server) {
 	}
 	fmt.Printf("Total Amount : %d\n", totalValue)
 
-	addList := server.RPCAddressList{Addresses: map[string]*ecdsa.PublicKey{}}
+	addList := server.RPCAddressList{Addresses: map[string]string{}}
 	ser.GetAddressList(server.Nothing{}, &addList)
 
 	fmt.Print("Number of Outputs: ")
@@ -198,14 +179,16 @@ func CreateTransaction(ser *server.Server) {
 	fmt.Scan(&outSize)
 	totalOutValue := 0
 	fmt.Print("Enter Outputs\n")
-	outputs := []core.TXO{}
+	outputs := []transaction.Output{}
 	for i := 0; i < outSize; i++ {
 		name := ""
 		value := 0
 		fmt.Scanf("%s %d", &name, &value)
-		outputs = append(outputs, core.TXO{Reciever: core.Address(*addList.Addresses[name]), Value: core.Cookies(value)})
+		address := server.RPCAddress{}
+		ser.GetAddress(name, &address)
+		outputs = append(outputs, transaction.Output{Reciever: address.Add, Value: core.Cookies(value)})
 		totalOutValue += value
 	}
 	status := true
-	ser.SubmitTransaction(&core.Transaction{TxIn: inputs, Output: outputs}, &status)
+	ser.SubmitTransaction(&transaction.Transaction{Inputs: inputs, Outputs: outputs}, &status)
 }

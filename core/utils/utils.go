@@ -17,3 +17,5 @@ func ZeroHash() HashType {
 	}
 	return *hash
 }
+
+type Null struct{}
