@@ -12,20 +12,15 @@ type BlockChain struct {
 	genesis    block.BlockId
 	end        block.BlockId
 	endTeller  teller.Teller
+	index      uint
 }
 
-// type BlockChainState struct {
-// 	Chain    BlockChain
-// 	Frontier UTXOFrontier
-// 	Pool     MemPool
-// 	Mined    MemPool
-// }
-
-func Create() BlockChain {
+func Create(index uint) BlockChain {
 	chain := BlockChain{
 		blockStore: block.CreateStore(),
 		height:     1,
 		endTeller:  teller.CreateTeller(),
+		index:      index,
 	}
 	genesis := block.CreateGenesis()
 	chain.blockStore.AddBlock(&genesis)
@@ -102,47 +97,3 @@ func (chain *BlockChain) GetBlock(id block.BlockId) *block.Block {
 
 	return chain.blockStore.GetBlock(id)
 }
-
-// func CreateBlockChainState() *BlockChainState {
-// 	state := BlockChainState{
-// 		Chain: BlockChain{
-// 			Chain: map[utils.HashType]Block{},
-// 			N:     0,
-// 			End:   utils.ZeroHash(),
-// 			Start: utils.ZeroHash(),
-// 		},
-// 		Frontier: CreateUTXOFrontier(),
-// 		Pool:     MemPool{Txns: map[TransactionId]Transaction{}},
-// 	}
-// 	return &state
-// }
-
-// func (state *BlockChainState) MineBlock(address *Address) *Block {
-// 	txns := []Transaction{}
-// 	minedTxns := state.GetMiningTransactions(BlockLimit - 1)
-// 	fees := state.Frontier.GetFees(minedTxns)
-// 	coinBaseTxn := Transaction{
-// 		TxIn: []OutPoint{{Id: TransactionId(utils.ZeroHash()), N: state.Chain.N + 1}},
-// 		Output: []TXO{
-// 			{Reciever: *address, Value: 50 + fees},
-// 		},
-// 	}
-// 	txns = append(txns, coinBaseTxn)
-// 	txns = append(txns, minedTxns...)
-// 	prevHash := state.Chain.End
-// 	block := MineBlock(txns, prevHash, state.Chain.N+1)
-// 	if block != nil {
-
-// 		state.Chain.N++
-// 		state.Chain.Chain[block.Hash()] = *block
-// 		state.Chain.End = block.Hash()
-// 		if state.Chain.N == 1 {
-// 			state.Chain.Start = state.Chain.End
-// 		}
-// 		for _, txn := range txns {
-// 			delete(state.Pool.Txns, txn.GetId())
-// 		}
-// 		state.Frontier.Update(block.Txns)
-// 	}
-// 	return block
-// }

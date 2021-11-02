@@ -19,3 +19,15 @@ func ZeroHash() HashType {
 }
 
 type Null struct{}
+
+// type Hashable interface {
+// 	Hash() HashType
+// }
+
+func MerkleHash(hashs []HashType) HashType {
+	var byteValues []byte
+	for _, hash := range hashs {
+		byteValues = append(byteValues, hash[:]...)
+	}
+	return Hash(byteValues)
+}

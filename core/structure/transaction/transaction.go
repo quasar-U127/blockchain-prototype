@@ -11,8 +11,9 @@ import (
 type TransactionId utils.HashType
 
 type OutPoint struct {
-	Id TransactionId
-	N  uint
+	Id     TransactionId
+	Update uint
+	N      uint
 }
 
 type Output struct {
@@ -22,11 +23,12 @@ type Output struct {
 
 // No Scripts and no contracts what so ever we are only implementing transfer between addresses
 type Transaction struct {
-	Inputs  []OutPoint
-	Outputs []Output
+	Inputs      []OutPoint
+	Outputs     []Output
+	PrevVersion TransactionId
 }
 
-func (txin OutPoint) ComputeHash() utils.HashType {
+func (txin OutPoint) Hash() utils.HashType {
 	b := make([]byte, 4)
 	binary.LittleEndian.PutUint32(b, uint32(txin.N))
 	bv := append([]byte(txin.Id[:]), []byte(b)...)
@@ -43,15 +45,16 @@ func (txo Output) Hash() utils.HashType {
 func (t *Transaction) Hash() utils.HashType {
 	var byteValues []byte
 	for _, input := range t.Inputs {
-		hash := input.ComputeHash()
+		hash := input.Hash()
 		bv := [utils.HashSize]byte(hash)
 		byteValues = append(byteValues, bv[:]...)
 	}
-	for _, output := range t.Inputs {
-		hash := output.ComputeHash()
+	for _, output := range t.Outputs {
+		hash := output.Hash()
 		bv := [utils.HashSize]byte(hash)
 		byteValues = append(byteValues, bv[:]...)
 	}
+	byteValues = append(byteValues, t.PrevVersion[:]...)
 	return utils.Hash(byteValues)
 }
 
@@ -69,13 +72,12 @@ func (t *Transaction) Print() {
 	fmt.Print("\n")
 }
 
-func TransactionListHash(txns []Transaction) utils.HashType {
-	var byteValues []byte
+func TransactionListHash(txns []UpdateTransaction) utils.HashType {
+	var hashs []utils.HashType
 	for _, txn := range txns {
-		b := [utils.HashSize]byte(txn.Hash())
-		byteValues = append(byteValues, b[:]...)
+		hashs = append(hashs, txn.Hash())
 	}
-	return utils.Hash(byteValues)
+	return utils.MerkleHash(hashs)
 }
 func (t Transaction) GetId() TransactionId {
 	return TransactionId(t.Hash())

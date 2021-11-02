@@ -111,3 +111,13 @@ func (tel *Teller) GetTransactionListFee(txns []transaction.Transaction) core.Co
 	}
 	return core.Cookies(fees)
 }
+
+func (tel *Teller) IsUnSpent(txn *transaction.Transaction) bool {
+	id := txn.GetId()
+	for i := range txn.Outputs {
+		if _, ok := tel.utxo[transaction.OutPoint{Id: id, N: uint(i)}]; !ok {
+			return false
+		}
+	}
+	return true
+}

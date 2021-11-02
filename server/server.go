@@ -28,7 +28,7 @@ func CreateServer(location string) Server {
 	server := Server{
 		Location:   location,
 		wal:        wallet.CreateWallet(),
-		serverNode: node.CreateNode(),
+		serverNode: node.CreateNode(1),
 	}
 
 	server.buf = new(bytes.Buffer)
@@ -65,11 +65,11 @@ type RPCBlock struct {
 
 func (ser *Server) MineBlock(name string, rpcBlock *RPCBlock) error {
 	address := ser.wal.Get(name)
-	status := ser.serverNode.Mine(&address)
+	status := ser.serverNode.Mine(0, &address)
 
 	ser.buf.Reset()
 	if status {
-		rpcBlock.MinedBlock = ser.serverNode.GetBlock(ser.serverNode.GetEnd())
+		rpcBlock.MinedBlock = ser.serverNode.GetBlock(0, ser.serverNode.GetEnd(0))
 		ser.infoLogger.Printf("Mined Block %d : %x", rpcBlock.MinedBlock.Header.Height, rpcBlock.MinedBlock.Id())
 		ser.infoLogger.Printf("With %d transactions", len(rpcBlock.MinedBlock.Txns))
 	} else {
@@ -81,7 +81,7 @@ func (ser *Server) MineBlock(name string, rpcBlock *RPCBlock) error {
 }
 
 func (ser *Server) SubmitTransaction(txn *transaction.Transaction, status *bool) error {
-	*status = ser.serverNode.AddTransaction(txn)
+	*status = ser.serverNode.AddTransaction(0, txn)
 	return nil
 }
 
